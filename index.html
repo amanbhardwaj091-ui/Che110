@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Land Use Change Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --g900:#0d2b1a;--g800:#14432a;--g700:#1a5c38;--g600:#217548;--g500:#2d9e62;
+  --g400:#4dc484;--g300:#80d9a8;--g200:#b5ecd0;--g100:#dff6ec;--g50:#f2fdf7;
+  --text:#0d2b1a;--text2:#4d6b5e;--textm:#8fa99e;
+  --bg:#fff;--bgs:#f2fdf7;--bgc:#fff;--bd:#dde5e1;
+  --sh:0 1px 3px rgba(13,43,26,.07),0 4px 16px rgba(13,43,26,.06);
+  --shl:0 8px 32px rgba(13,43,26,.13);
+  --r:12px;--rl:20px;
+  --fd:'Instrument Serif',Georgia,serif;--fb:'DM Sans',system-ui,sans-serif;
+  --nh:62px;--tr:.18s ease;
+}
+[data-theme=dark]{
+  --text:#e8f5ee;--text2:#80d9a8;--textm:#4dc484;
+  --bg:#0a1f14;--bgs:#0d2b1a;--bgc:#112419;--bd:#1a4030;
+  --sh:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+  --shl:0 8px 32px rgba(0,0,0,.35);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);background:var(--bg);color:var(--text);transition:background .3s,color .3s;line-height:1.6;min-height:100vh}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bgs)}::-webkit-scrollbar-thumb{background:var(--g300);border-radius:3px}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--nh);background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 1.75rem;gap:1.5rem;transition:background .3s}
+.brand{font-family:var(--fd);font-size:1.2rem;color:var(--g700);text-decoration:none;white-space:nowrap;flex-shrink:0;letter-spacing:-.015em}
+.nl{display:flex;gap:.1rem;list-style:none;flex:1}
+.nl a{text-decoration:none;color:var(--text2);font-size:.85rem;font-weight:500;padding:.38rem .8rem;border-radius:8px;transition:background var(--tr),color var(--tr);cursor:pointer}
+.nl a:hover,.nl a.on{background:var(--g100);color:var(--g700)}
+[data-theme=dark] .nl a:hover,[data-theme=dark] .nl a.on{background:var(--g800);color:var(--g300)}
+.na{display:flex;gap:.6rem;align-items:center;margin-left:auto}
+.bg{background:none;border:1px solid var(--bd);color:var(--text2);padding:.38rem .9rem;border-radius:8px;font-size:.82rem;font-family:var(--fb);cursor:pointer;transition:all var(--tr)}
+.bg:hover{border-color:var(--g500);color:var(--g600)}
+.bp{background:var(--g600);border:none;color:#fff;padding:.42rem 1rem;border-radius:8px;font-size:.82rem;font-family:var(--fb);font-weight:500;cursor:pointer;transition:background var(--tr),transform var(--tr)}
+.bp:hover{background:var(--g700);transform:translateY(-1px)}
+.tt{width:34px;height:34px;border-radius:50%;border:1px solid var(--bd);background:var(--bgs);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.95rem;transition:all var(--tr);flex-shrink:0}
+.tt:hover{border-color:var(--g400)}
+
+/* PAGES */
+.pg{display:none;padding-top:var(--nh);min-height:100vh}
+.pg.on{display:block}
+
+/* HOME */
+.hero{padding:4.5rem 2rem 3.5rem;max-width:920px;margin:0 auto;text-align:center}
+.htag{display:inline-block;background:var(--g100);color:var(--g700);font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:.28rem .85rem;border-radius:100px;margin-bottom:1.4rem}
+[data-theme=dark] .htag{background:var(--g800);color:var(--g300)}
+.hero h1{font-family:var(--fd);font-size:clamp(2.4rem,5vw,3.8rem);line-height:1.08;margin-bottom:1.1rem;letter-spacing:-.025em}
+.hero h1 em{font-style:italic;color:var(--g600)}
+.hero p{font-size:1.05rem;color:var(--text2);max-width:560px;margin:0 auto 2.2rem;font-weight:300}
+.ha{display:flex;gap:.875rem;justify-content:center;flex-wrap:wrap}
+.bl{padding:.7rem 1.9rem;border-radius:10px;font-size:.95rem;font-family:var(--fb);font-weight:500;cursor:pointer;border:none;transition:all var(--tr)}
+.bl.pr{background:var(--g600);color:#fff}.bl.pr:hover{background:var(--g700);transform:translateY(-2px);box-shadow:var(--shl)}
+.bl.ol{background:none;border:1.5px solid var(--bd);color:var(--text2)}.bl.ol:hover{border-color:var(--g500);color:var(--g600)}
+.sbar{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bd);border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;max-width:680px;margin:2.75rem auto 0}
+.si{background:var(--bgc);padding:1.4rem;text-align:center}
+.sn{font-family:var(--fd);font-size:2.1rem;color:var(--g600);line-height:1;margin-bottom:.25rem}
+.sl{font-size:.75rem;color:var(--textm);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+.fs{padding:3.5rem 2rem;max-width:1080px;margin:0 auto}
+.sh{text-align:center;margin-bottom:2.75rem}
+.sh h2{font-family:var(--fd);font-size:2.1rem;margin-bottom:.65rem;letter-spacing:-.02em}
+.sh p{color:var(--text2);font-size:.95rem;font-weight:300}
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1.1rem}
+.fc{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--rl);padding:1.6rem;transition:box-shadow var(--tr),transform var(--tr);cursor:default}
+.fc:hover{box-shadow:var(--shl);transform:translateY(-3px)}
+.fi{width:42px;height:42px;background:var(--g100);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:.9rem;font-size:1.15rem}
+[data-theme=dark] .fi{background:var(--g800)}
+.fc h3{font-size:.95rem;font-weight:600;margin-bottom:.4rem}
+.fc p{font-size:.82rem;color:var(--text2);line-height:1.55}
+
+/* UPLOAD */
+.up{max-width:880px;margin:0 auto;padding:2.75rem 2rem}
+.pt{font-family:var(--fd);font-size:2.1rem;margin-bottom:.4rem;letter-spacing:-.02em}
+.ps{color:var(--text2);margin-bottom:2.2rem;font-weight:300}
+.ug{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;margin-bottom:1.5rem}
+.dz{border:2px dashed var(--bd);border-radius:var(--rl);padding:2.25rem 1.4rem;text-align:center;cursor:pointer;transition:all var(--tr);background:var(--bgs);position:relative;min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.dz:hover,.dz.dov{border-color:var(--g500);background:var(--g50)}
+[data-theme=dark] .dz:hover,[data-theme=dark] .dz.dov{background:var(--g900);border-color:var(--g500)}
+.dz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.di{width:50px;height:50px;background:var(--g100);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .9rem;font-size:1.4rem;pointer-events:none}
+[data-theme=dark] .di{background:var(--g800)}
+.dz h3{font-size:.95rem;font-weight:600;margin-bottom:.25rem;pointer-events:none}
+.dz p{font-size:.78rem;color:var(--textm);pointer-events:none}
+.dz.hi .di,.dz.hi h3,.dz.hi p{display:none}
+.pi{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:calc(var(--rl) - 2px);display:none}
+.dz.hi .pi{display:block}
+.dl{position:absolute;top:9px;left:9px;background:rgba(13,43,26,.8);color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.18rem .55rem;border-radius:5px;pointer-events:none}
+.fsec{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--rl);padding:1.6rem;margin-bottom:1.4rem}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.9rem}
+.fr.s1{grid-template-columns:1fr}
+.fg2{display:flex;flex-direction:column;gap:.35rem}
+label{font-size:.77rem;font-weight:600;color:var(--text2);letter-spacing:.04em;text-transform:uppercase}
+input[type=text],input[type=email],input[type=password],textarea,select{background:var(--bgs);border:1px solid var(--bd);border-radius:8px;padding:.58rem .85rem;font-size:.88rem;font-family:var(--fb);color:var(--text);transition:border-color var(--tr);outline:none;width:100%}
+input:focus,textarea:focus,select:focus{border-color:var(--g500)}
+textarea{resize:vertical;min-height:86px}
+.aib{display:flex;align-items:center;gap:.45rem;background:var(--g100);border:none;color:var(--g700);padding:.45rem .9rem;border-radius:8px;font-size:.78rem;font-family:var(--fb);font-weight:600;cursor:pointer;transition:background var(--tr);margin-top:.45rem}
+.aib:hover{background:var(--g200)}
+[data-theme=dark] .aib{background:var(--g800);color:var(--g300)}.
+[data-theme=dark] .aib:hover{background:var(--g700)}
+.sr{display:flex;gap:.875rem;justify-content:flex-end;align-items:center}
+.smpl{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.7rem}
+.smb{border:1px solid var(--bd);background:var(--bgs);border-radius:7px;font-size:.72rem;color:var(--text2);padding:.28rem .65rem;cursor:pointer;font-family:var(--fb);transition:all var(--tr)}
+.smb:hover{border-color:var(--g500);color:var(--g600)}
+
+/* COMPARE */
+.cp{max-width:1080px;margin:0 auto;padding:2.75rem 2rem}
+.ctb{display:flex;gap:.45rem;margin-bottom:1.4rem;flex-wrap:wrap;align-items:center}
+.tb{background:var(--bgc);border:1px solid var(--bd);color:var(--text2);padding:.42rem .95rem;border-radius:8px;font-size:.8rem;font-family:var(--fb);font-weight:500;cursor:pointer;transition:all var(--tr)}
+.tb:hover,.tb.on{background:var(--g600);color:#fff;border-color:var(--g600)}
+.cw{border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;background:var(--bgs);margin-bottom:1.4rem}
+.sbs{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bd)}
+.cpn{background:var(--bgc);position:relative}
+.cpn img{width:100%;height:320px;object-fit:cover;display:block}
+.pl{position:absolute;top:10px;left:10px;background:rgba(13,43,26,.8);color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.2rem .6rem;border-radius:5px}
+.sv{display:none;position:relative;height:320px;overflow:hidden}
+.sv.on{display:block}
+.sbs.hd{display:none}
+.sb,.sa{position:absolute;inset:0}
+.sb img,.sa img{width:100%;height:100%;object-fit:cover}
+.sa{overflow:hidden;width:50%}
+.sh2{position:absolute;top:0;bottom:0;left:50%;width:3px;background:#fff;cursor:ew-resize;z-index:10;transform:translateX(-50%)}
+.sh2::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;background:#fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.sh2::after{content:'< >';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.6rem;font-weight:700;color:var(--g700);letter-spacing:-1px;z-index:1;pointer-events:none;line-height:1;margin-top:-1px}
+.dv{display:none;position:relative;height:320px;overflow:hidden}
+.dv.on{display:block}
+.dv canvas{width:100%;height:100%;display:block}
+.dleg{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.7);border-radius:8px;padding:.45rem .7rem;font-size:.7rem;color:#fff;display:flex;flex-direction:column;gap:.28rem}
+.li{display:flex;align-items:center;gap:.38rem}
+.ld{width:9px;height:9px;border-radius:50%}
+.ca{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--rl);padding:1.4rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.4rem}
+.ai{text-align:center}
+.av{font-family:var(--fd);font-size:1.9rem;color:var(--g600);line-height:1;margin-bottom:.25rem}
+.alb{font-size:.77rem;color:var(--textm);text-transform:uppercase;letter-spacing:.05em}
+.ab{height:4px;background:var(--bd);border-radius:2px;margin:.45rem 0;overflow:hidden}
+.abf{height:100%;border-radius:2px;transition:width 1s ease}
+.dr{display:flex;gap:.7rem;justify-content:flex-end;margin-top:1.4rem}
+
+/* GALLERY */
+.gp{max-width:1080px;margin:0 auto;padding:2.75rem 2rem}
+.gf{display:flex;gap:.7rem;margin-bottom:1.75rem;flex-wrap:wrap;align-items:center}
+.fi2{flex:1;min-width:190px;max-width:310px}
+.fsel{width:155px}
+.ftg{background:var(--bgs);border:1px solid var(--bd);color:var(--text2);padding:.38rem .8rem;border-radius:100px;font-size:.78rem;font-family:var(--fb);font-weight:500;cursor:pointer;transition:all var(--tr)}
+.ftg:hover,.ftg.on{background:var(--g600);color:#fff;border-color:var(--g600)}
+.gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:1.1rem}
+.gc{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;transition:box-shadow var(--tr),transform var(--tr);cursor:pointer}
+.gc:hover{box-shadow:var(--shl);transform:translateY(-4px)}
+.ci{display:grid;grid-template-columns:1fr 1fr;height:155px;gap:1px;background:var(--bd)}
+.ci img{width:100%;height:100%;object-fit:cover}
+.cb{padding:1rem}
+.cm{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+.cloc{font-size:.72rem;color:var(--g600);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.cdt{font-size:.72rem;color:var(--textm)}
+.cti{font-weight:600;font-size:.92rem;margin-bottom:.35rem}
+.cde{font-size:.8rem;color:var(--text2);line-height:1.5}
+.cf{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;border-top:1px solid var(--bd)}
+.cas{display:flex;gap:.4rem}
+.cab{background:none;border:none;color:var(--textm);font-size:.78rem;font-family:var(--fb);cursor:pointer;padding:.28rem .55rem;border-radius:6px;transition:all var(--tr);display:flex;align-items:center;gap:.28rem}
+.cab:hover{background:var(--g100);color:var(--g700)}
+[data-theme=dark] .cab:hover{background:var(--g800);color:var(--g300)}
+.cab.lk{color:#e05454}
+.ctg{font-size:.68rem;padding:.18rem .55rem;border-radius:100px;font-weight:600;letter-spacing:.04em}
+.t-urban{background:#fff3e0;color:#b55a00}.t-def{background:var(--g100);color:var(--g800)}.t-wet{background:#e3f2fd;color:#1a5276}.t-ag{background:#f9fbe7;color:#5a6a0a}
+[data-theme=dark] .t-urban{background:#3d2500;color:#ffb347}[data-theme=dark] .t-def{background:var(--g900);color:var(--g200)}[data-theme=dark] .t-wet{background:#0a1e2e;color:#7ec8e3}[data-theme=dark] .t-ag{background:#1e2200;color:#c5e000}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
+.mo.op{display:flex}
+.md{background:var(--bgc);border:1px solid var(--bd);border-radius:var(--rl);padding:2rem;width:100%;max-width:390px;margin:1rem;position:relative;box-shadow:var(--shl);animation:mi .2s ease}
+@keyframes mi{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mc{position:absolute;top:.9rem;right:.9rem;background:none;border:none;color:var(--textm);font-size:1.1rem;cursor:pointer;padding:.2rem;line-height:1}
+.md h2{font-family:var(--fd);font-size:1.65rem;margin-bottom:.2rem}
+.mst{font-size:.85rem;color:var(--text2);margin-bottom:1.6rem}
+.mts{display:flex;border-bottom:1px solid var(--bd);margin-bottom:1.4rem}
+.mt{background:none;border:none;color:var(--textm);font-size:.85rem;font-family:var(--fb);font-weight:500;padding:.48rem .9rem .6rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all var(--tr)}
+.mt.on{color:var(--g600);border-bottom-color:var(--g600)}
+.mf{display:flex;flex-direction:column;gap:.9rem}
+.mf .bp{width:100%;padding:.7rem;font-size:.95rem;border-radius:10px;font-family:var(--fb);font-weight:600;margin-top:.4rem}
+.dvt{display:flex;align-items:center;gap:.7rem;margin:.4rem 0;color:var(--textm);font-size:.78rem}
+.dvt::before,.dvt::after{content:'';flex:1;height:1px;background:var(--bd)}
+
+/* TOAST */
+.tst{position:fixed;bottom:1.75rem;right:1.75rem;background:var(--g800);color:#fff;padding:.7rem 1.15rem;border-radius:10px;font-size:.84rem;box-shadow:var(--shl);z-index:300;opacity:0;transform:translateY(8px);transition:all .28s;pointer-events:none}
+.tst.sh{opacity:1;transform:translateY(0)}
+
+/* PROGRESS */
+.pb{height:3px;background:var(--g200);border-radius:2px;overflow:hidden;margin-top:.45rem}
+.pf{height:100%;background:var(--g500);border-radius:2px;width:0;transition:width .35s ease}
+
+/* FOOTER */
+footer{text-align:center;padding:1.75rem;border-top:1px solid var(--bd);color:var(--textm);font-size:.78rem;margin-top:3.5rem}
+footer span{color:var(--g500)}
+
+/* SPINNER */
+.sp{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spn .6s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes spn{to{transform:rotate(360deg)}}
+
+/* EMPTY */
+.es{text-align:center;padding:3.5rem 2rem;color:var(--textm);grid-column:1/-1}
+.es-i{font-size:2.5rem;margin-bottom:.9rem}
+.es h3{font-size:1.05rem;color:var(--text2);margin-bottom:.4rem}
+.es p{font-size:.84rem}
+
+@media(max-width:768px){
+  nav{padding:0 1rem;gap:.875rem}.nl{display:none}
+  .hero{padding:3rem 1.25rem 2.25rem}.hero h1{font-size:2.1rem}
+  .sbar{grid-template-columns:1fr}
+  .ug,.fr{grid-template-columns:1fr}
+  .ca{grid-template-columns:1fr}
+  .sbs{grid-template-columns:1fr}
+  .cpn img{height:190px}.sv{height:190px}.dv{height:190px}
+  .gg{grid-template-columns:1fr}
+  .up,.cp,.gp{padding:2rem 1rem}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="#" onclick="nav('home')">Land Use Viewer</a>
+  <ul class="nl">
+    <li><a onclick="nav('home')"    id="nh" class="on">Home</a></li>
+    <li><a onclick="nav('upload')"  id="nu">Upload</a></li>
+    <li><a onclick="nav('compare')" id="nc">Compare</a></li>
+    <li><a onclick="nav('gallery')" id="ng">Community</a></li>
+  </ul>
+  <div class="na">
+    <button class="tt" onclick="toggleTheme()" id="ttb">&#9680;</button>
+    <button class="bg" onclick="openAuth('login')">Sign in</button>
+    <button class="bp" onclick="openAuth('signup')">Join</button>
+  </div>
+</nav>
+
+<!-- HOME -->
+<div class="pg on" id="pg-home">
+  <section class="hero">
+    <div class="htag">Environmental Monitoring Platform</div>
+    <h1>Track how our land<br><em>changes over time</em></h1>
+    <p>Upload before and after images of local areas, compare them with AI-powered analysis, and share findings with your community.</p>
+    <div class="ha">
+      <button class="bl pr" onclick="nav('upload')">Upload Images</button>
+      <button class="bl ol" onclick="nav('gallery')">View Community</button>
+    </div>
+    <div class="sbar">
+      <div class="si"><div class="sn" id="s1">0</div><div class="sl">Submissions</div></div>
+      <div class="si"><div class="sn" id="s2">0</div><div class="sl">Locations</div></div>
+      <div class="si"><div class="sn" id="s3">0</div><div class="sl">Contributors</div></div>
+    </div>
+  </section>
+  <section class="fs">
+    <div class="sh">
+      <h2>Everything you need to document change</h2>
+      <p>A complete toolkit for environmental monitoring and community participation.</p>
+    </div>
+    <div class="fg">
+      <div class="fc"><div class="fi">&#9670;</div><h3>AI Change Detection</h3><p>Automatically detect and highlight differences between images — vegetation loss, construction, road expansion, and more.</p></div>
+      <div class="fc"><div class="fi">&#9135;</div><h3>Slider Comparison</h3><p>Drag an interactive slider to reveal before and after views of the same location with pixel-perfect alignment.</p></div>
+      <div class="fc"><div class="fi">&#9685;</div><h3>Community Gallery</h3><p>Browse submissions from contributors worldwide. Like, comment, and build on each other's environmental observations.</p></div>
+      <div class="fc"><div class="fi">&#9711;</div><h3>Location Tagging</h3><p>Tag submissions to specific coordinates. Filter the gallery by region to see what is changing near you.</p></div>
+      <div class="fc"><div class="fi">&#9547;</div><h3>Change Descriptions</h3><p>AI auto-generates descriptions from your images. Edit, expand, and contextualize the story behind each change.</p></div>
+      <div class="fc"><div class="fi">&#9633;</div><h3>Download Reports</h3><p>Export your comparison analysis as an image — ready for academic, journalistic, or advocacy use.</p></div>
+    </div>
+  </section>
+  <footer>Built for environmental awareness &mdash; <span>Track change. Protect the future.</span></footer>
+</div>
+
+<!-- UPLOAD -->
+<div class="pg" id="pg-upload">
+  <div class="up">
+    <h1 class="pt">Submit a Comparison</h1>
+    <p class="ps">Upload a before and after image of the same location to document land use change.</p>
+    <div class="ug">
+      <div class="dz" id="dz-b" ondragover="dov(event)" ondragleave="dlv(event)" ondrop="ddr(event,'b')">
+        <span class="dl">Before</span>
+        <input type="file" accept="image/*" onchange="hf(event,'b')">
+        <div class="di">&#9651;</div>
+        <h3>Drop "Before" image</h3>
+        <p>PNG, JPG up to 10 MB</p>
+        <img class="pi" id="pb" alt="">
+      </div>
+      <div class="dz" id="dz-a" ondragover="dov(event)" ondragleave="dlv(event)" ondrop="ddr(event,'a')">
+        <span class="dl">After</span>
+        <input type="file" accept="image/*" onchange="hf(event,'a')">
+        <div class="di">&#9651;</div>
+        <h3>Drop "After" image</h3>
+        <p>PNG, JPG up to 10 MB</p>
+        <img class="pi" id="pa" alt="">
+      </div>
+    </div>
+    <div style="margin-bottom:1.1rem;display:flex;align-items:center;gap:.7rem;font-size:.78rem;color:var(--textm);flex-wrap:wrap">
+      Try sample images:
+      <div class="smpl">
+        <button class="smb" onclick="loadSample('forest')">Forest to Urban</button>
+        <button class="smb" onclick="loadSample('wetland')">Wetland Drainage</button>
+        <button class="smb" onclick="loadSample('farm')">Farmland Loss</button>
+      </div>
+    </div>
+    <div class="fsec">
+      <div class="fr">
+        <div class="fg2"><label>Location Name</label><input type="text" id="il" placeholder="e.g. Aravalli Hills, Delhi"></div>
+        <div class="fg2"><label>Year Range</label><input type="text" id="iy" placeholder="e.g. 2010 - 2024"></div>
+      </div>
+      <div class="fr">
+        <div class="fg2">
+          <label>Change Category</label>
+          <select id="ic"><option value="">Select type of change</option><option>Deforestation</option><option>Urban Expansion</option><option>Agricultural Conversion</option><option>Wetland Loss</option><option>Mining / Quarrying</option><option>Coastal Erosion</option><option>Other</option></select>
+        </div>
+        <div class="fg2"><label>Coordinates (optional)</label><input type="text" id="icd" placeholder="28.6139 N, 77.2090 E"></div>
+      </div>
+      <div class="fr s1">
+        <div class="fg2">
+          <label>Description of Changes</label>
+          <textarea id="id2" placeholder="Describe what changed and why it matters..."></textarea>
+          <button class="aib" onclick="genDesc()"><span id="aibt">Generate with AI</span></button>
+          <div class="pb" id="aipb" style="display:none"><div class="pf" id="aipf"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="sr">
+      <button class="bg" onclick="resetUp()">Clear</button>
+      <button class="bp" style="padding:.65rem 1.75rem;font-size:.95rem;border-radius:9px" onclick="submitEntry()">Submit Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPARE -->
+<div class="pg" id="pg-compare">
+  <div class="cp">
+    <h1 class="pt">Compare Viewer</h1>
+    <p class="ps">Load two images and analyze the changes using different viewing modes.</p>
+    <div class="ctb">
+      <button class="tb on" id="bt-side"   onclick="setMode('side')">Side by Side</button>
+      <button class="tb"    id="bt-slider" onclick="setMode('slider')">Swipe Slider</button>
+      <button class="tb"    id="bt-diff"   onclick="setMode('diff')">AI Diff</button>
+      <div style="margin-left:auto;display:flex;gap:.45rem">
+        <button class="tb" onclick="loadCmpImgs()">Load Images</button>
+        <button class="tb" onclick="dlResult()">Download</button>
+      </div>
+    </div>
+    <div class="cw" id="cw">
+      <div class="sbs" id="v-side">
+        <div class="cpn"><img src="" id="ci-b" alt="Before" onerror="this.src=blankSvg('Before','#dff6ec','#2d9e62')"><span class="pl">Before</span></div>
+        <div class="cpn"><img src="" id="ci-a" alt="After"  onerror="this.src=blankSvg('After','#f0f4f2','#8fa99e')"><span class="pl">After</span></div>
+      </div>
+      <div class="sv" id="v-slider">
+        <div class="sb"><img src="" id="sl-b" alt="Before"></div>
+        <div class="sa" id="sa-div"><img src="" id="sl-a" alt="After"></div>
+        <div class="sh2" id="slh"></div>
+      </div>
+      <div class="dv" id="v-diff">
+        <canvas id="dc" height="320"></canvas>
+        <div class="dleg">
+          <div class="li"><div class="ld" style="background:#4dc484"></div>Vegetation</div>
+          <div class="li"><div class="ld" style="background:#e05454"></div>Loss / change</div>
+          <div class="li"><div class="ld" style="background:#6b9fd4"></div>Water / roads</div>
+          <div class="li"><div class="ld" style="background:#e8c560"></div>Built area</div>
+        </div>
+      </div>
+    </div>
+    <div class="ca">
+      <div class="ai"><div class="av" id="av1">--</div><div class="ab"><div class="abf" id="af1" style="background:var(--g500)"></div></div><div class="alb">Vegetation loss</div></div>
+      <div class="ai"><div class="av" id="av2">--</div><div class="ab"><div class="abf" id="af2" style="background:#e8a840"></div></div><div class="alb">Urban growth</div></div>
+      <div class="ai"><div class="av" id="av3">--</div><div class="ab"><div class="abf" id="af3" style="background:#e05454"></div></div><div class="alb">Change index</div></div>
+    </div>
+    <div class="dr">
+      <button class="tb" onclick="toast('Analysis copied to clipboard')">Copy Analysis</button>
+      <button class="bp" style="padding:.52rem 1.15rem;font-size:.84rem;border-radius:8px;font-family:var(--fb)" onclick="dlResult()">Download Result</button>
+    </div>
+  </div>
+</div>
+
+<!-- GALLERY -->
+<div class="pg" id="pg-gallery">
+  <div class="gp">
+    <h1 class="pt">Community Submissions</h1>
+    <p class="ps">Browse documented land use changes from contributors around the world.</p>
+    <div class="gf">
+      <input type="text" class="fi2" placeholder="Search by location or keyword..." oninput="filterGal(this.value)">
+      <select class="fsel" onchange="filterGal()"><option value="">All categories</option><option>Deforestation</option><option>Urban Expansion</option><option>Agricultural Conversion</option><option>Wetland Loss</option></select>
+      <button class="ftg on" onclick="setFilt('all',this)">All</button>
+      <button class="ftg"    onclick="setFilt('recent',this)">Recent</button>
+      <button class="ftg"    onclick="setFilt('popular',this)">Popular</button>
+    </div>
+    <div class="gg" id="gg"></div>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="mo" id="am">
+  <div class="md">
+    <button class="mc" onclick="closeAuth()">&#x2715;</button>
+    <h2>Welcome back</h2>
+    <p class="mst">Sign in to submit and track your contributions.</p>
+    <div class="mts">
+      <button class="mt on" id="mt1" onclick="swTab('login')">Sign in</button>
+      <button class="mt"    id="mt2" onclick="swTab('signup')">Create account</button>
+    </div>
+    <div class="mf" id="mf-login">
+      <div class="fg2"><label>Email</label><input type="email" placeholder="you@example.com"></div>
+      <div class="fg2"><label>Password</label><input type="password" placeholder="••••••••"></div>
+      <button class="bp" onclick="fakeLogin()">Sign in</button>
+      <div class="dvt">or continue with</div>
+      <button class="bg" style="width:100%;padding:.62rem" onclick="fakeLogin()">Google</button>
+    </div>
+    <div class="mf" id="mf-signup" style="display:none">
+      <div class="fg2"><label>Full name</label><input type="text" placeholder="Priya Sharma"></div>
+      <div class="fg2"><label>Email</label><input type="email" placeholder="you@example.com"></div>
+      <div class="fg2"><label>Password</label><input type="password" placeholder="Min 8 characters"></div>
+      <button class="bp" onclick="fakeLogin()">Create account</button>
+    </div>
+  </div>
+</div>
+
+<div class="tst" id="tst"></div>
+<canvas id="hc" style="display:none"></canvas>
+
+<script>
+// ─── STATE ───
+let imgs = {b:null,a:null};
+let cMode = 'side';
+let slDrag = false;
+let gData = [];
+
+// ─── HELPERS ───
+function blankSvg(label, fill, tc) {
+  return `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="320"><rect width="600" height="320" fill="${encodeURIComponent(fill)}"/><text x="300" y="170" text-anchor="middle" fill="${encodeURIComponent(tc)}" font-size="18" font-family="sans-serif">${label}</text></svg>`;
+}
+
+function makeCanvas(cols, label, w, h) {
+  const c = document.getElementById('hc');
+  c.width=w; c.height=h;
+  const x = c.getContext('2d');
+  const bw=w/2,bh=h/2;
+  x.fillStyle=cols[0];x.fillRect(0,0,bw,bh);
+  x.fillStyle=cols[1];x.fillRect(bw,0,bw,bh);
+  x.fillStyle=cols[2];x.fillRect(0,bh,bw,bh);
+  x.fillStyle=cols[3];x.fillRect(bw,bh,bw,bh);
+  x.strokeStyle='rgba(255,255,255,.12)';x.lineWidth=1;
+  for(let i=0;i<w;i+=55){x.beginPath();x.moveTo(i,0);x.lineTo(i,h);x.stroke()}
+  for(let i=0;i<h;i+=55){x.beginPath();x.moveTo(0,i);x.lineTo(w,i);x.stroke()}
+  x.fillStyle='rgba(0,0,0,.5)';x.fillRect(0,0,w,36);
+  x.fillStyle='#fff';x.font='bold 14px sans-serif';x.fillText(label,14,23);
+  return c.toDataURL();
+}
+
+const SMPS = {
+  forest: {b:['#2d7a3a','#1a5f2a','#3a8a45','#4a9a55'],a:['#888','#6b6b6b','#aaa','#555'],loc:'Aravalli Forest, Delhi',yr:'2005–2023',cat:'Deforestation',desc:'Dense tree cover replaced by residential development. Estimated 42% canopy loss over 18 years.'},
+  wetland:{b:['#1a5f8a','#2a7aaa','#3a8aba','#4a9aca'],a:['#c4a265','#b89050','#d4b275','#c8a260'],loc:'Yamuna Wetlands, Delhi',yr:'2008–2022',cat:'Wetland Loss',desc:'Seasonal wetlands drained for agricultural expansion. Local bird population significantly reduced.'},
+  farm:   {b:['#7ab855','#5a9835','#8ac865','#6aa845'],a:['#c4a265','#888','#bbb','#999'],loc:'Haryana Farmland',yr:'2012–2023',cat:'Agricultural Conversion',desc:'Traditional farmland converted to industrial zone. Soil fertility permanently impacted.'}
+};
+
+// ─── NAVIGATION ───
+function nav(page) {
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nl a').forEach(a=>a.classList.remove('on'));
+  document.getElementById('pg-'+page).classList.add('on');
+  document.getElementById('n'+page[0]).classList.add('on');
+  window.scrollTo(0,0);
+  if(page==='gallery' && gData.length===0) buildGal();
+  if(page==='compare') initCmp();
+  if(page==='home') animStats();
+}
+
+// ─── THEME ───
+function toggleTheme(){
+  const h=document.documentElement;
+  const d=h.getAttribute('data-theme')==='dark';
+  h.setAttribute('data-theme',d?'light':'dark');
+  document.getElementById('ttb').innerHTML=d?'&#9680;':'&#9681;';
+}
+
+// ─── STATS ───
+function animStats(){
+  animN('s1',0,1284,1200);animN('s2',0,347,1000);animN('s3',0,892,1100);
+}
+function animN(id,from,to,dur){
+  const el=document.getElementById(id);
+  const t0=performance.now();
+  function step(now){const t=Math.min((now-t0)/dur,1);el.textContent=Math.round(from+(to-from)*(1-Math.pow(1-t,3))).toLocaleString();if(t<1)requestAnimationFrame(step)}
+  requestAnimationFrame(step);
+}
+
+// ─── DRAG/DROP ───
+function dov(e){e.preventDefault();e.currentTarget.classList.add('dov')}
+function dlv(e){e.currentTarget.classList.remove('dov')}
+function ddr(e,type){e.preventDefault();e.currentTarget.classList.remove('dov');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))loadFile(f,type)}
+function hf(e,type){const f=e.target.files[0];if(f)loadFile(f,type)}
+function loadFile(file,type){
+  const r=new FileReader();
+  r.onload=ev=>{imgs[type]=ev.target.result;document.getElementById('p'+type).src=ev.target.result;document.getElementById('dz-'+type).classList.add('hi')};
+  r.readAsDataURL(file);
+}
+
+function loadSample(name){
+  const s=SMPS[name];
+  imgs.b=makeCanvas(s.b,'Before',600,320);
+  imgs.a=makeCanvas(s.a,'After',600,320);
+  document.getElementById('pb').src=imgs.b;document.getElementById('dz-b').classList.add('hi');
+  document.getElementById('pa').src=imgs.a;document.getElementById('dz-a').classList.add('hi');
+  document.getElementById('il').value=s.loc;
+  document.getElementById('iy').value=s.yr;
+  document.getElementById('ic').value=s.cat;
+  document.getElementById('id2').value=s.desc;
+  toast('Sample images loaded');
+}
+
+// ─── AI DESC ───
+function genDesc(){
+  const btn=document.getElementById('aibt'),pb=document.getElementById('aipb'),pf=document.getElementById('aipf');
+  btn.innerHTML='<span class="sp"></span> Analyzing...';
+  pb.style.display='block';pf.style.width='0%';
+  let w=0;const iv=setInterval(()=>{w=Math.min(w+8,90);pf.style.width=w+'%'},120);
+  const cat=document.getElementById('ic').value||'land use';
+  const loc=document.getElementById('il').value||'this area';
+  const yr=document.getElementById('iy').value||'over time';
+  const descs=[
+    `Significant ${cat.toLowerCase()} detected in ${loc} (${yr}). The area shows marked reduction in natural land cover, with built-up surfaces expanding by an estimated 30–45%. Tree canopy loss is visible across the northern and eastern portions. Increased surface runoff and reduced groundwater recharge are likely consequences.`,
+    `Comparative analysis of ${loc} reveals accelerated urban expansion between ${yr}. Green cover has been substantially diminished, replaced by impervious surfaces including roads, buildings, and infrastructure.`,
+    `Land use change in ${loc} shows classic patterns of ${cat.toLowerCase()}. Imagery reveals a shift from permeable, biodiverse landscape to a more uniform hardened surface. The change carries implications for local biodiversity, temperature regulation, and carbon sequestration.`
+  ];
+  setTimeout(()=>{
+    clearInterval(iv);pf.style.width='100%';
+    document.getElementById('id2').value=descs[Math.floor(Math.random()*3)];
+    btn.textContent='Generate with AI';pb.style.display='none';
+    toast('Description generated');
+  },2100);
+}
+
+// ─── SUBMIT ───
+function submitEntry(){
+  const loc=document.getElementById('il').value;
+  const desc=document.getElementById('id2').value;
+  const cat=document.getElementById('ic').value;
+  if(!loc||!desc||!imgs.b||!imgs.a){toast('Fill in location, description, and upload both images');return}
+  const e={id:Date.now(),location:loc,years:document.getElementById('iy').value||'—',category:cat,desc,tag:tagOf(cat),before:imgs.b,after:imgs.a,likes:0,liked:false,date:new Date().toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'}),author:'You'};
+  gData.unshift(e);
+  if(document.getElementById('gg').children.length)renderGal(gData);
+  toast('Submission added to community gallery');
+  resetUp();
+  setTimeout(()=>nav('gallery'),800);
+}
+
+function tagOf(cat){
+  if(!cat)return'def';
+  if(cat.includes('Urban'))return'urban';
+  if(cat.includes('Wetland'))return'wet';
+  if(cat.includes('Agricultural'))return'ag';
+  return'def';
+}
+
+function resetUp(){
+  imgs={b:null,a:null};
+  ['b','a'].forEach(t=>{document.getElementById('p'+t).src='';document.getElementById('dz-'+t).classList.remove('hi')});
+  ['il','iy','id2','icd'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ic').value='';
+}
+
+// ─── COMPARE ───
+function initCmp(){
+  if(!imgs.b)loadSample('forest');
+  updateCmpImgs();
+}
+
+function updateCmpImgs(){
+  const b=imgs.b||'',a=imgs.a||'';
+  ['ci-b','sl-b'].forEach(id=>{const el=document.getElementById(id);if(el)el.src=b});
+  ['ci-a','sl-a'].forEach(id=>{const el=document.getElementById(id);if(el)el.src=a});
+  if(b&&a)runAnalysis();
+}
+
+function loadCmpImgs(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.multiple=true;
+  inp.onchange=e=>{
+    const fs=Array.from(e.target.files);
+    if(fs[0]){const r=new FileReader();r.onload=ev=>{imgs.b=ev.target.result;updateCmpImgs()};r.readAsDataURL(fs[0])}
+    if(fs[1]){const r=new FileReader();r.onload=ev=>{imgs.a=ev.target.result;updateCmpImgs()};r.readAsDataURL(fs[1])}
+  };
+  inp.click();
+}
+
+function setMode(m){
+  cMode=m;
+  document.querySelectorAll('.ctb .tb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('bt-'+m).classList.add('on');
+  document.getElementById('v-side').classList.toggle('hd',m!=='side');
+  const sv=document.getElementById('v-slider');sv.classList.toggle('on',m==='slider');
+  const dv=document.getElementById('v-diff');dv.classList.toggle('on',m==='diff');
+  if(m==='diff')renderDiff();
+}
+
+// ─── SLIDER ───
+;(function(){
+  const handle=document.getElementById('slh');
+  const aSide=document.getElementById('sa-div');
+  const wrap=document.getElementById('v-slider');
+  function mv(x){const r=wrap.getBoundingClientRect();const p=Math.max(5,Math.min(95,((x-r.left)/r.width)*100));handle.style.left=p+'%';aSide.style.width=p+'%'}
+  handle.addEventListener('mousedown',()=>slDrag=true);
+  document.addEventListener('mouseup',()=>slDrag=false);
+  document.addEventListener('mousemove',e=>{if(slDrag)mv(e.clientX)});
+  handle.addEventListener('touchstart',()=>slDrag=true,{passive:true});
+  document.addEventListener('touchend',()=>slDrag=false);
+  document.addEventListener('touchmove',e=>{if(slDrag)mv(e.touches[0].clientX)},{passive:true});
+})();
+
+// ─── ANALYSIS ───
+function runAnalysis(){
+  const v=[Math.floor(Math.random()*40+15),Math.floor(Math.random()*35+10),Math.floor(Math.random()*50+20)];
+  ['1','2','3'].forEach((n,i)=>document.getElementById('av'+n).textContent=v[i]+'%');
+  setTimeout(()=>['1','2','3'].forEach((n,i)=>document.getElementById('af'+n).style.width=v[i]+'%'),200);
+}
+
+function renderDiff(){
+  const canvas=document.getElementById('dc');
+  const wrap=document.getElementById('v-diff');
+  canvas.width=wrap.offsetWidth||600;canvas.height=320;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=320;
+  const seed=Math.random();
+  ctx.fillStyle='#111';ctx.fillRect(0,0,W,H);
+  [[80,90,120,80,'#e05454'],[200,180,90,60,'#4dc484'],[350,220,110,70,'#e8c560'],[500,140,80,100,'#6b9fd4'],[160,260,60,50,'#e05454'],[420,275,70,50,'#4dc484'],[290,80,50,40,'#6b9fd4']].forEach(([cx,cy,rx,ry,col])=>{
+    ctx.fillStyle=col+'99';ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,seed,0,Math.PI*2);ctx.fill();
+  });
+  ctx.fillStyle='rgba(0,0,0,.22)';for(let y=0;y<H;y+=3)ctx.fillRect(0,y,W,1);
+  ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=1;
+  [[100,100],[310,175],[475,245]].forEach(([x,y])=>{ctx.beginPath();ctx.moveTo(x-7,y);ctx.lineTo(x+7,y);ctx.stroke();ctx.beginPath();ctx.moveTo(x,y-7);ctx.lineTo(x,y+7);ctx.stroke()});
+  ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='bold 11px DM Sans,sans-serif';ctx.fillText('AI Change Analysis',13,20);
+  ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='10px DM Sans,sans-serif';ctx.fillText('Heatmap overlay',13,33);
+}
+
+// ─── GALLERY ───
+function buildGal(){
+  if(gData.length===0){
+    const seeds=[
+      {location:'Bengaluru Outskirts',years:'2008–2022',category:'Deforestation',desc:'Rapid deforestation for IT corridor expansion. Estimated 38% green cover lost. Water table has declined significantly.',tag:'def',likes:142,smp:'forest',author:'Priya S.',date:'Jan 2024'},
+      {location:'Mumbai Coast',years:'2005–2020',category:'Urban Expansion',desc:'Coastal mangroves cleared for high-rise residential projects. Loss of 240 hectares of protected mangrove forest.',tag:'urban',likes:231,smp:'forest',author:'Arjun M.',date:'Mar 2024'},
+      {location:'Kerala Backwaters',years:'2010–2023',category:'Wetland Loss',desc:'Seasonal wetlands drained for prawn cultivation. Significant reduction in migratory bird habitat.',tag:'wet',likes:89,smp:'wetland',author:'Kavya R.',date:'Feb 2024'},
+      {location:'Punjab Farmland',years:'2000–2018',category:'Agricultural Conversion',desc:'Fertile agricultural land converted to industrial estate. Soil degradation and groundwater depletion reported.',tag:'ag',likes:67,smp:'farm',author:'Suresh K.',date:'Apr 2024'},
+      {location:'Delhi Green Belt',years:'2012–2024',category:'Deforestation',desc:'Aravalli forest encroachment for residential development. Dust storm frequency has tripled in the region.',tag:'def',likes:318,smp:'forest',author:'Anika P.',date:'Dec 2023'},
+      {location:'Chennai Lakes',years:'2006–2021',category:'Wetland Loss',desc:'Several urban lakes have been encroached upon and partially filled. Flooding incidents increased after each monsoon.',tag:'wet',likes:178,smp:'wetland',author:'Ravi T.',date:'Nov 2023'}
+    ];
+    seeds.forEach((s,i)=>{
+      const sp=SMPS[s.smp];
+      gData.push({id:i+1,...s,before:makeCanvas(sp.b,'Before',600,310),after:makeCanvas(sp.a,'After',600,310),liked:false});
+    });
+  }
+  renderGal(gData);
+}
+
+function renderGal(data){
+  const g=document.getElementById('gg');
+  if(!data.length){g.innerHTML=`<div class="es"><div class="es-i">&#9711;</div><h3>No submissions yet</h3><p>Be the first to document a change in your area.</p></div>`;return}
+  g.innerHTML=data.map(e=>`
+    <div class="gc" onclick="openEntry(${e.id})">
+      <div class="ci"><img src="${e.before}" alt="Before" loading="lazy"><img src="${e.after}" alt="After" loading="lazy"></div>
+      <div class="cb">
+        <div class="cm"><span class="cloc">${e.location}</span><span class="cdt">${e.date}</span></div>
+        <div class="cti">${e.category}</div>
+        <div class="cde">${e.desc.substring(0,108)}...</div>
+      </div>
+      <div class="cf">
+        <div class="cas">
+          <button class="cab${e.liked?' lk':''}" onclick="toggleLike(event,${e.id})">${e.liked?'&#9829;':'&#9825;'} ${e.likes}</button>
+          <button class="cab" onclick="event.stopPropagation();toast('Comments coming soon')">&#9675; Comment</button>
+        </div>
+        <span class="ctg t-${e.tag}">${e.category}</span>
+      </div>
+    </div>`).join('');
+}
+
+function filterGal(q){
+  const qv=(q||document.querySelector('.fi2').value||'').toLowerCase();
+  const cat=document.querySelector('.fsel').value;
+  renderGal(gData.filter(e=>(!qv||e.location.toLowerCase().includes(qv)||e.desc.toLowerCase().includes(qv))&&(!cat||e.category===cat)));
+}
+
+function setFilt(type,btn){
+  document.querySelectorAll('.ftg').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(type==='popular')renderGal([...gData].sort((a,b)=>b.likes-a.likes));
+  else if(type==='recent')renderGal([...gData].slice(0,4));
+  else renderGal(gData);
+}
+
+function toggleLike(event,id){
+  event.stopPropagation();
+  const e=gData.find(e=>e.id===id);if(!e)return;
+  e.liked=!e.liked;e.likes+=e.liked?1:-1;
+  renderGal(gData);
+}
+
+function openEntry(id){
+  const e=gData.find(e=>e.id===id);if(!e)return;
+  imgs.b=e.before;imgs.a=e.after;
+  nav('compare');updateCmpImgs();
+  toast('Loaded in Compare Viewer');
+}
+
+// ─── DOWNLOAD ───
+function dlResult(){
+  if(!imgs.b){toast('Load images first');return}
+  const c=document.getElementById('hc');c.width=1200;c.height=620;
+  const x=c.getContext('2d');
+  x.fillStyle='#fff';x.fillRect(0,0,1200,620);
+  const li=src=>new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.src=src});
+  Promise.all([li(imgs.b),li(imgs.a)]).then(([b,a])=>{
+    x.drawImage(b,0,0,600,560);x.drawImage(a,600,0,600,560);
+    x.fillStyle='#0d2b1a';x.fillRect(0,560,1200,60);
+    x.fillStyle='#fff';x.font='bold 18px sans-serif';
+    x.fillText('Land Use Change Viewer — Before vs After',18,596);
+    x.fillText(new Date().toLocaleDateString(),1080,596);
+    const lnk=document.createElement('a');lnk.download='land-use-comparison.png';lnk.href=c.toDataURL();lnk.click();
+    toast('Downloaded');
+  });
+}
+
+// ─── AUTH ───
+function openAuth(tab){document.getElementById('am').classList.add('op');swTab(tab)}
+function closeAuth(){document.getElementById('am').classList.remove('op')}
+function fakeLogin(){closeAuth();toast('Signed in successfully')}
+function swTab(tab){
+  document.getElementById('mf-login').style.display=tab==='login'?'flex':'none';
+  document.getElementById('mf-signup').style.display=tab==='signup'?'flex':'none';
+  document.getElementById('mt1').classList.toggle('on',tab==='login');
+  document.getElementById('mt2').classList.toggle('on',tab==='signup');
+}
+document.getElementById('am').addEventListener('click',function(e){if(e.target===this)closeAuth()});
+
+// ─── TOAST ───
+let tt;
+function toast(msg){
+  const el=document.getElementById('tst');el.textContent=msg;el.classList.add('sh');
+  clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('sh'),2700);
+}
+
+// ─── INIT ───
+animStats();
+</script>
+</body>
+</html>
